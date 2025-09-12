@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сервис адресов Казахстана</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        input, button { padding: 10px; margin: 5px; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .suggestions { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; }
+        .suggestion { padding: 8px; cursor: pointer; }
+        .suggestion:hover { background: #e0e0e0; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🇰🇿 Сервис адресов Казахстана</h1>
+
+    <!-- Геолокация -->
+    <div class="section">
+        <h3>📱 Получить адрес из геолокации</h3>
+        <button onclick="getMyLocation()">Определить мое местоположение</button>
+        <div id="location-result"></div>
+    </div>
+
+    <!-- Поиск адреса -->
+    <div class="section">
+        <h3>🔍 Поиск координат по адресу</h3>
+        <input type="text" id="search-input" placeholder="Введите адрес..." style="width: 70%;">
+        <button onclick="searchAddress()">Поиск</button>
+        <div id="search-result"></div>
+    </div>
+
+    <!-- Автокомплит -->
+    <div class="section">
+        <h3>💡 Автокомплит адресов</h3>
+        <input type="text" id="autocomplete-input" placeholder="Начните вводить адрес..."
+               oninput="showSuggestions()" style="width: 70%;">
+        <div id="suggestions" class="suggestions" style="display: none;"></div>
+    </div>
+
+    <!-- Обратное геокодирование -->
+    <div class="section">
+        <h3>🌐 Получить адрес по координатам</h3>
+        <input type="number" id="lat-input" placeholder="Широта" step="any">
+        <input type="number" id="lon-input" placeholder="Долгота" step="any">
+        <button onclick="reverseGeocode()">Получить адрес</button>
+        <div id="reverse-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        // Получение геолокации
+        function getMyLocation() {
+            const resultDiv = document.getElementById('location-result');
+
+            if (!navigator.geolocation) {
+                resultDiv.innerHTML = '<div class="error">Геолокация не поддерживается</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = 'Определение местоположения...';
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    fetch(`${API_BASE}/api/geolocation-address`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({latitude: lat, longitude: lon})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const addr = data.address;
+                            resultDiv.innerHTML = `
+                                <div class="success">
+                                    <strong>Ваш адрес:</strong><br>
+                                    📍 ${addr.display_name}<br>
+                                    🏠 ${addr.road || 'Не определена'}<br>
+                                    🏙️ ${addr.city || 'Не определен'}, ${addr.region || ''}<br>
+                                    📮 ${addr.postcode || 'Не определен'}<br>
+                                    🌐 ${lat.toFixed(6)}, ${lon.toFixed(6)}
+                                </div>
+                            `;
+                        } else {
+                            resultDiv.innerHTML = `<div class="error">Ошибка: ${data.error}</div>`;
+                        }
+                    })
+                    .catch(error => {
+                        resultDiv.innerHTML = `<div class="error">Ошибка сети: ${error}</div>`;
+                    });
+                },
+                function(error) {
+                    resultDiv.innerHTML = `<div class="error">Ошибка геолокации: ${error.message}</div>`;
+                }
+            );
+        }
+
+        // Поиск адреса
+        function searchAddress() {
+            const query = document.getElementById('search-input').value;
+            const resultDiv = document.getElementById('search-result');
+
+            if (!query.trim()) {
+                resultDiv.innerHTML = '<div class="error">Введите адрес для поиска</div>';
+                return;
+            }
+
+            fetch(`${API_BASE}/api/geocode`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({query: query, limit: 5})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.locations.length > 0) {
+                    let html = '<div class="success">Найденные адреса:</div>';
+                    data.locations.forEach((loc, index) => {
+                        html += `
+                            <div class="result">
+                                <strong>${index + 1}. ${loc.name || loc.display_name}</strong><br>
+                                📍 ${loc.display_name}<br>
+                                🌐 ${loc.latitude.toFixed(6)}, ${loc.longitude.toFixed(6)}<br>
+                                🏙️ ${loc.city}, ${loc.region}
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Адреса не найдены</div>';
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">Ошибка: ${error}</div>`;
+            });
+        }
+
+        // Автокомплит
+        let suggestionTimeout;
+        function showSuggestions() {
+            const query = document.getElementById('autocomplete-input').value;
+            const suggestionsDiv = document.getElementById('suggestions');
+
+            clearTimeout(suggestionTimeout);
+
+            if (query.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+
+            suggestionTimeout = setTimeout(() => {
+                fetch(`${API_BASE}/api/autocomplete?q=${encodeURIComponent(query)}&limit=5`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.suggestions.length > 0) {
+                        let html = '';
+                        data.suggestions.forEach(suggestion => {
+                            html += `
+                                <div class="suggestion" onclick="selectSuggestion('${suggestion.short_text}')">
+                                    <strong>${suggestion.short_text}</strong><br>
+                                    <small>${suggestion.city}, ${suggestion.region}</small>
+                                </div>
+                            `;
+                        });
+                        suggestionsDiv.innerHTML = html;
+                        suggestionsDiv.style.display = 'block';
+                    } else {
+                        suggestionsDiv.style.display = 'none';
+                    }
+                });
+            }, 300);
+        }
+
+        function selectSuggestion(text) {
+            document.getElementById('autocomplete-input').value = text;
+            document.getElementById('suggestions').style.display = 'none';
+        }
+
+        // Обратное геокодирование
+        function reverseGeocode() {
+            const lat = parseFloat(document.getElementById('lat-input').value);
+            const lon = parseFloat(document.getElementById('lon-input').value);
+            const resultDiv = document.getElementById('reverse-result');
+
+            if (isNaN(lat) || isNaN(lon)) {
+                resultDiv.innerHTML = '<div class="error">Введите корректные координаты</div>';
+                return;
+            }
+
+            fetch(`${API_BASE}/api/reverse-geocode`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({latitude: lat, longitude: lon})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const addr = data.address;
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>Адрес:</strong><br>
+                            📍 ${addr.display_name}<br>
+                            🏠 ${addr.road || 'Не определена'}<br>
+                            🏙️ ${addr.city || 'Не определен'}, ${addr.region || ''}<br>
+                            📮 ${addr.postcode || 'Не определен'}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">Ошибка: ${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">Ошибка: ${error}</div>`;
+            });
+        }
+
+        // Скрываем подсказки при клике вне поля
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#autocomplete-input') && !e.target.closest('#suggestions')) {
+                document.getElementById('suggestions').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
