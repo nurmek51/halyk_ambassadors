@@ -4,6 +4,7 @@ import '../models/auth_models.dart';
 abstract class AuthRemoteDataSource {
   Future<void> requestOtp(OtpRequestModel request);
   Future<AuthTokensModel> verifyOtp(OtpVerificationModel verification);
+  Future<AuthTokensModel> refreshToken(String refreshToken);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -27,6 +28,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         '/auth/verify-otp',
         data: verification.toJson(),
       );
+
+      return AuthTokensModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<AuthTokensModel> refreshToken(String token) async {
+    try {
+      final response = await dio.post(
+        '/auth/refresh-token',
+        data: {'refresh_token': token},
+      );
+
       return AuthTokensModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);

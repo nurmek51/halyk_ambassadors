@@ -81,13 +81,13 @@ class _OtpInputFieldState extends State<OtpInputField> {
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w400,
                   color: AppColors.textPrimary,
                 ),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+                  contentPadding: EdgeInsets.symmetric(vertical: 22),
                 ),
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,

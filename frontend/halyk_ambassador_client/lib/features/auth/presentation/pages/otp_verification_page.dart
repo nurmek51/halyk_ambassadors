@@ -9,6 +9,8 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/otp_input_field.dart';
+import 'profile_creation_page.dart';
+import '../widgets/halyk_logo_widget.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   final String phoneNumber;
@@ -38,6 +40,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return; // Prevent setState on disposed widget
       setState(() {
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
@@ -67,7 +70,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   }
 
   void _onCannotLogin() {
-    // TODO: Implement cannot login functionality
+    // TODO: Implement functionality for users who cannot log in
   }
 
   String _formatTime(int seconds) {
@@ -83,12 +86,14 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
         backgroundColor: AppColors.background,
         body: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
-            if (state is AuthAuthenticated) {
-              // TODO: Navigate to main app
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Авторизация успешна!'),
-                  backgroundColor: Colors.green,
+            if (state is OtpVerified) {
+              _timer.cancel(); // Cancel timer before navigation
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<AuthBloc>(),
+                    child: ProfileCreationPage(authContext: state.authContext),
+                  ),
                 ),
               );
             } else if (state is OtpError) {
@@ -112,49 +117,23 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 208.5),
-                  // Halyk Logo
-                  SizedBox(
-                    width: 148.01,
-                    height: 59,
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 148.01,
-                          height: 42,
-                          decoration: const BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage(
-                                'assets/images/halyk_logo-a0a422.png',
-                              ),
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'терминалы',
-                          style: AppTextStyles.brandText.copyWith(
-                            color: AppColors.brandGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 53),
+                  const SizedBox(height: 180.5),
+                  const HalykLogoWidget(),
+                  const SizedBox(height: 20),
                   // Title
                   Container(
-                    width: 164,
-                    height: 22,
+                    width: 235,
+                    height: 44,
                     alignment: Alignment.center,
                     child: Text(
                       'Введите код из СМС',
+                      textAlign: TextAlign.center,
                       style: AppTextStyles.bodyRegular.copyWith(
                         color: AppColors.textPrimary,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 39),
+                  const SizedBox(height: 26),
                   // OTP Input
                   OtpInputField(onCompleted: _onOtpCompleted),
                   const SizedBox(height: 21),
@@ -168,33 +147,39 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       );
                     },
                   ),
-                  const SizedBox(height: 79),
-                  // Resend Timer
-                  TextButton(
-                    onPressed: _canResend ? _onResendOtp : null,
-                    child: Text(
-                      _canResend
-                          ? 'Отправить код повторно'
-                          : 'Отправить код повторно (${_formatTime(_secondsRemaining)})',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: _canResend
-                            ? AppColors.accent
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
                   const Spacer(),
-                  // Cannot Login Button
+                  const Spacer(),
+                  // Bottom Buttons
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 52),
-                    child: TextButton(
-                      onPressed: _onCannotLogin,
-                      child: Text(
-                        'Не получается войти?',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.accent,
+                    padding: const EdgeInsets.only(bottom: 30),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Resend Timer
+                        TextButton(
+                          onPressed: _canResend ? _onResendOtp : null,
+                          child: Text(
+                            _canResend
+                                ? 'Отправить код повторно'
+                                : 'Отправить код повторно (${_formatTime(_secondsRemaining)})',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: _canResend
+                                  ? AppColors.accent
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
                         ),
-                      ),
+                        // Cannot Login Button
+                        TextButton(
+                          onPressed: _onCannotLogin,
+                          child: Text(
+                            'Не получается войти?',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

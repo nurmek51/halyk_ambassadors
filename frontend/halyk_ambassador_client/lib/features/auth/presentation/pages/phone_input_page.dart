@@ -8,8 +8,8 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/halyk_logo_widget.dart';
 import '../widgets/phone_input_field.dart';
-import 'otp_verification_page.dart';
 
 class PhoneInputPage extends StatefulWidget {
   const PhoneInputPage({super.key});
@@ -47,16 +47,7 @@ class _PhoneInputPageState extends State<PhoneInputPage> {
         backgroundColor: AppColors.background,
         body: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
-            if (state is OtpSent) {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<AuthBloc>(),
-                    child: OtpVerificationPage(phoneNumber: state.phoneNumber),
-                  ),
-                ),
-              );
-            } else if (state is AuthError) {
+            if (state is AuthError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message),
@@ -70,44 +61,10 @@ class _PhoneInputPageState extends State<PhoneInputPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 208.5),
+                  const SizedBox(height: 200.5),
                   // Halyk Logo
-                  SizedBox(
-                    width: 148.01,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 148.01,
-                          height: 42,
-                          child: Center(
-                            child: Image.asset(
-                              'assets/images/halyk_logo-a0a422.png',
-                              width: 148.01,
-                              height: 42,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'терминалы',
-                          style: AppTextStyles.brandText.copyWith(
-                            color: AppColors.brandGreen,
-                            fontFamily: 'Ubuntu',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                            height: 1.0,
-                            letterSpacing: 0.3,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 70),
+                  const HalykLogoWidget(),
+                  const SizedBox(height: 20),
                   // Title
                   Container(
                     width: 235,
