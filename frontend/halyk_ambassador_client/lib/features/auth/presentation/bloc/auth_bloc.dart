@@ -66,7 +66,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         OtpVerification(phoneNumber: event.phoneNumber, otpCode: event.otpCode),
       );
 
-      // Create auth context for navigation to profile creation
+      // Create auth context and check profile immediately
       String accountId = 'temp_account_id'; // fallback
       if (tokens is AuthTokensModel && tokens.accountId != null) {
         accountId = tokens.accountId!;
@@ -78,7 +78,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         tokens: tokens,
       );
 
-      emit(OtpVerified(authContext));
+      // Check if user profile exists and load data immediately
+      final profileExists = await checkUserProfile(accountId);
+      if (profileExists) {
+        // Load profile data immediately after authentication
+        emit(ProfileMeLoading());
+        try {
+          final profile = await getProfileMe();
+          emit(ProfileMeLoaded(profile));
+        } catch (e) {
+          // If profile loading fails, still show user as authenticated
+          emit(UserProfileExists(authContext));
+        }
+      } else {
+        emit(UserProfileNotFound(authContext));
+      }
     } catch (e) {
       emit(OtpError(message: e.toString(), phoneNumber: event.phoneNumber));
     }
@@ -104,7 +118,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     try {
       await createProfile(event.profileData);
-      emit(ProfileCreated());
+      // After profile creation, get the current auth context and load profile data
+      final authContext = await checkAuthStatus();
+      if (authContext != null) {
+        // Load profile data immediately after creation
+        emit(ProfileMeLoading());
+        try {
+          final profile = await getProfileMe();
+          emit(ProfileMeLoaded(profile));
+        } catch (e) {
+          // If profile loading fails, still show user as authenticated
+          emit(UserProfileExists(authContext));
+        }
+      } else {
+        emit(Unauthenticated());
+      }
     } catch (e) {
       emit(ProfileError(e.toString()));
     }
@@ -127,10 +155,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     CheckAuthStatusEvent event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     try {
       final authContext = await checkAuthStatus();
       if (authContext != null) {
-        emit(Authenticated(authContext));
+        // User has valid tokens, check if they have a profile
+        final profileExists = await checkUserProfile(authContext.accountId);
+        if (profileExists) {
+          // Load profile data immediately after authentication
+          emit(ProfileMeLoading());
+          try {
+            final profile = await getProfileMe();
+            emit(ProfileMeLoaded(profile));
+          } catch (e) {
+            // If profile loading fails, still show user as authenticated
+            emit(UserProfileExists(authContext));
+          }
+        } else {
+          emit(UserProfileNotFound(authContext));
+        }
       } else {
         emit(Unauthenticated());
       }
@@ -154,7 +197,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           phoneNumber: currentContext.phoneNumber,
           tokens: newTokens,
         );
-        emit(Authenticated(updatedContext));
+
+        // Maintain current profile state when refreshing tokens
+        if (state is ProfileMeLoaded) {
+          // Keep the existing profile data, just update the auth context
+          final currentProfile = (state as ProfileMeLoaded).profile;
+          emit(ProfileMeLoaded(currentProfile));
+        } else if (state is UserProfileExists) {
+          emit(UserProfileExists(updatedContext));
+        } else if (state is UserProfileNotFound) {
+          emit(UserProfileNotFound(updatedContext));
+        }
       } else {
         emit(Unauthenticated());
       }

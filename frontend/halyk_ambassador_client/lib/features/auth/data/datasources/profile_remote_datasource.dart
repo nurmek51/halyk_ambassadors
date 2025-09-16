@@ -72,6 +72,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         return Exception('Неверный формат данных');
       case 401:
         return Exception('Неавторизован');
+      case 404:
+        return Exception('Профиль не найден');
       case 422:
         return Exception('Данные не прошли валидацию');
       case 500:

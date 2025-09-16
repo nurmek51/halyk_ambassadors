@@ -84,7 +84,7 @@ class Address extends Equatable {
   final String postcode;
   final double latitude;
   final double longitude;
-  final int confidence;
+  final double confidence;
 
   const Address({
     required this.found,

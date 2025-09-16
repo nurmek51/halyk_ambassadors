@@ -13,6 +13,7 @@ const flutterBestPractices = [
     "Use Flutter 3.x features and Material 3 design",
     "Implement clean architecture with BLoC pattern",
     "UX/UI MUST BE ADAPTIVE FOR EACH DEVICES AND SCREEN SIZES",
+    "Less comments, only if it needed",
     "Follow proper state management principles",
     "Use proper dependency injection",
     "Implement proper error handling",

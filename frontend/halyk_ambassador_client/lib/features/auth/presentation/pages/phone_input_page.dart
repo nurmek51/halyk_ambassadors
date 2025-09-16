@@ -47,7 +47,9 @@ class _PhoneInputPageState extends State<PhoneInputPage> {
         backgroundColor: AppColors.background,
         body: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
-            if (state is AuthError) {
+            if (state is UserProfileExists) {
+              // AuthWrapper will handle navigation automatically
+            } else if (state is AuthError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message),

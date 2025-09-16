@@ -118,11 +118,16 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> checkUserProfile(String accountId) async {
     try {
       // Try to get user profile to check if it exists
-      await profileRemoteDataSource.getUserProfile(accountId);
+      await getProfileMe();
       return true;
     } catch (e) {
-      // If profile doesn't exist or there's an error, return false
-      return false;
+      // If profile doesn't exist (404), return false
+      if (e.toString().contains('Профиль не найден') ||
+          e.toString().contains('404')) {
+        return false;
+      }
+      // For other errors (network, server, auth), assume profile exists to be safe
+      return true;
     }
   }
 

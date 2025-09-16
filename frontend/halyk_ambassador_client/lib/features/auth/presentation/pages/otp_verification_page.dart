@@ -9,7 +9,6 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/otp_input_field.dart';
-import 'profile_creation_page.dart';
 import '../widgets/halyk_logo_widget.dart';
 
 class OtpVerificationPage extends StatefulWidget {
@@ -86,16 +85,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
         backgroundColor: AppColors.background,
         body: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
-            if (state is OtpVerified) {
+            if (state is UserProfileExists || state is UserProfileNotFound) {
               _timer.cancel(); // Cancel timer before navigation
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<AuthBloc>(),
-                    child: ProfileCreationPage(authContext: state.authContext),
-                  ),
-                ),
-              );
+              // AuthWrapper will handle navigation automatically
             } else if (state is OtpError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

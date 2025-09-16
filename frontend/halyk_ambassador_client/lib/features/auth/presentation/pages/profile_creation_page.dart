@@ -102,36 +102,6 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     }
   }
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Успешно!'),
-        content: const Text(
-          'Профиль успешно создан. Добро пожаловать в систему!',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Pop the dialog
-              Navigator.of(
-                context,
-              ).pop(); // Pop the ProfileCreationPage to show the updated home
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Переход в основное приложение...'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            child: const Text('Продолжить'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return ResponsiveWrapper(
@@ -139,8 +109,14 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
         backgroundColor: AppColors.background,
         body: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
-            if (state is ProfileCreated) {
-              _showSuccessDialog();
+            if (state is UserProfileExists) {
+              // AuthWrapper will handle navigation automatically
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Профиль успешно создан!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
             } else if (state is ProfileError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

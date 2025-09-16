@@ -109,7 +109,7 @@ class AddressModel extends Address {
       postcode: json['postcode'] ?? '',
       latitude: (json['latitude'] ?? 0).toDouble(),
       longitude: (json['longitude'] ?? 0).toDouble(),
-      confidence: json['confidence'] ?? 0,
+      confidence: (json['confidence'] ?? 0).toDouble(),
     );
   }
 }

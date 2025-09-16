@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:halyk_ambassador_client/features/auth/presentation/pages/phone_input_page.dart';
 import 'package:halyk_ambassador_client/features/auth/presentation/pages/menu_page.dart';
+import 'package:halyk_ambassador_client/features/auth/presentation/pages/profile_creation_page.dart';
 import 'package:halyk_ambassador_client/features/auth/presentation/pages/otp_verification_page.dart';
 
 import 'core/theme/app_theme.dart';
@@ -32,14 +34,55 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startTokenRefreshTimer();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // App resumed, check auth status and refresh token if needed
+      context.read<AuthBloc>().add(RefreshTokenEvent());
+    }
+  }
+
+  void _startTokenRefreshTimer() {
+    // Refresh token every 25 minutes (tokens usually expire in 30 minutes)
+    _refreshTimer = Timer.periodic(const Duration(minutes: 25), (timer) {
+      if (mounted) {
+        context.read<AuthBloc>().add(RefreshTokenEvent());
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        if (state is AuthLoading || state is AuthInitial) {
+        if (state is AuthLoading ||
+            state is AuthInitial ||
+            state is ProfileMeLoading) {
           return const Scaffold(
             backgroundColor: Color(0xFFF1F2F1),
             body: Center(
@@ -48,15 +91,12 @@ class AuthWrapper extends StatelessWidget {
               ),
             ),
           );
-        } else if (state is Authenticated || state is UserProfileExists) {
+        } else if (state is ProfileMeLoaded || state is UserProfileExists) {
           return const MenuPage();
-        } else if (state is OtpVerified || state is UserProfileNotFound) {
-          // User verified but needs to complete profile
-          return const MenuPage(); // For now, redirect to menu. Later can check if profile is complete
+        } else if (state is UserProfileNotFound) {
+          return ProfileCreationPage(authContext: state.authContext);
         } else if (state is OtpSent) {
           return OtpVerificationPage(phoneNumber: state.phoneNumber);
-        } else if (state is ProfileCreated) {
-          return const MenuPage();
         } else {
           // Unauthenticated or other states
           return const PhoneInputPage();

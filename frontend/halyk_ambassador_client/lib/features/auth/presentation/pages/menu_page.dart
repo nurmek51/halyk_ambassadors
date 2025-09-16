@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:halyk_ambassador_client/features/auth/presentation/bloc/auth_state.dart';
+import 'package:halyk_ambassador_client/core/widgets/responsive_wrapper.dart';
 import '../bloc/auth_bloc.dart';
-import '../bloc/auth_event.dart';
 import '../widgets/halyk_logo_widget.dart';
 
 class MenuPage extends StatelessWidget {
@@ -11,24 +11,26 @@ class MenuPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1F2F1),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 59),
-              // Header card with logo and user info
-              _buildHeaderCard(context),
-              const SizedBox(height: 26),
-              // Menu buttons
-              _buildMenuButtons(context),
-              const Spacer(),
-              // Feedback link
-              _buildFeedbackLink(),
-              const SizedBox(height: 35),
-            ],
+    return ResponsiveWrapper(
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF1F2F1),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 59),
+                // Header card with logo and user info
+                _buildHeaderCard(context),
+                const SizedBox(height: 26),
+                // Menu buttons
+                _buildMenuButtons(context),
+                const Spacer(),
+                // Feedback link
+                _buildFeedbackLink(),
+                const SizedBox(height: 35),
+              ],
+            ),
           ),
         ),
       ),
@@ -60,7 +62,7 @@ class MenuPage extends StatelessWidget {
           const SizedBox(height: 50),
           const HalykLogoWidget(),
           const SizedBox(height: 31),
-          // User info
+          // User info - display cached profile data
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               if (state is ProfileMeLoaded) {
@@ -73,29 +75,39 @@ class MenuPage extends StatelessWidget {
                     color: const Color(0xFFF1F2F1),
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Text(
-                    '􀉩 ${state.profile.fullName}',
-                    style: const TextStyle(
-                      fontFamily: 'Mabry Pro',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0x8A000000),
-                      height: 1.3,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/icons/profile_icon.svg',
+                        width: 16,
+                        height: 16,
+                        colorFilter: const ColorFilter.mode(
+                          Color(0x8A000000),
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        state.profile.fullName,
+                        style: const TextStyle(
+                          fontFamily: 'Mabry Pro',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0x8A000000),
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               } else if (state is ProfileMeLoading) {
                 return const CircularProgressIndicator();
-              } else if (state is ProfileMeError) {
-                return Text('Error: ${state.message}');
+              } else if (state is UserProfileExists) {
+                // Profile exists but data not loaded yet - this shouldn't happen with new logic
+                return const Text('Loading profile...');
               } else {
-                // Trigger load if not already loaded
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (state is! ProfileMeLoaded && state is! ProfileMeLoading) {
-                    context.read<AuthBloc>().add(GetProfileMeEvent());
-                  }
-                });
-                return const Text('Loading...');
+                return const Text('Welcome!');
               }
             },
           ),
