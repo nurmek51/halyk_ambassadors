@@ -7,6 +7,7 @@ import '../../domain/usecases/create_profile.dart';
 import '../../domain/usecases/refresh_token.dart';
 import '../../domain/usecases/check_user_profile.dart';
 import '../../domain/usecases/get_profile_me.dart';
+import '../../domain/usecases/update_profile.dart';
 import '../../data/models/auth_models.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -20,6 +21,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final CheckAuthStatus checkAuthStatus;
   final CheckUserProfile checkUserProfile;
   final GetProfileMeUseCase getProfileMe;
+  final UpdateProfile updateProfile;
+
+  bool _isRefreshingToken = false;
 
   AuthBloc({
     required this.requestOtp,
@@ -30,6 +34,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.checkAuthStatus,
     required this.checkUserProfile,
     required this.getProfileMe,
+    required this.updateProfile,
   }) : super(AuthInitial()) {
     on<RequestOtpEvent>(_onRequestOtp);
     on<VerifyOtpEvent>(_onVerifyOtp);
@@ -41,6 +46,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LogoutEvent>(_onLogout);
     on<CheckUserProfileEvent>(_onCheckUserProfile);
     on<GetProfileMeEvent>(_onGetProfileMe);
+    on<UpdateProfileEvent>(_onUpdateProfile);
   }
 
   Future<void> _onRequestOtp(
@@ -186,12 +192,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     RefreshTokenEvent event,
     Emitter<AuthState> emit,
   ) async {
+    // Prevent multiple simultaneous refresh requests
+    if (_isRefreshingToken) {
+      print('⚠️ Token refresh already in progress, skipping this request');
+      return;
+    }
+
+    _isRefreshingToken = true;
+    print('🔄 RefreshTokenEvent received - starting token refresh');
+
     try {
       final currentContext = await checkAuthStatus();
       if (currentContext != null) {
+        print('📋 Current auth context found, refreshing token...');
         final newTokens = await refreshToken(
           currentContext.tokens.refreshToken,
         );
+
+        print('✅ Token refresh successful');
         final updatedContext = AuthContext(
           accountId: currentContext.accountId,
           phoneNumber: currentContext.phoneNumber,
@@ -200,19 +218,41 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
         // Maintain current profile state when refreshing tokens
         if (state is ProfileMeLoaded) {
-          // Keep the existing profile data, just update the auth context
-          final currentProfile = (state as ProfileMeLoaded).profile;
-          emit(ProfileMeLoaded(currentProfile));
+          print('👤 Refreshing profile data after token refresh');
+          // Refresh profile data from server after token refresh
+          try {
+            final refreshedProfile = await getProfileMe();
+            print('✅ Profile data refreshed after token refresh');
+            print('  - Profile ID: ${refreshedProfile.id}');
+            print('  - Name: ${refreshedProfile.fullName}');
+            print('  - Address: ${refreshedProfile.addressDisplay}');
+            print('  - City: ${refreshedProfile.address.city}');
+            emit(ProfileMeLoaded(refreshedProfile));
+          } catch (e) {
+            print('❌ Profile refresh failed after token refresh: $e');
+            // Fall back to maintaining existing profile if refresh fails
+            final currentProfile = (state as ProfileMeLoaded).profile;
+            emit(ProfileMeLoaded(currentProfile));
+          }
         } else if (state is UserProfileExists) {
+          print('👤 Maintaining UserProfileExists state after token refresh');
           emit(UserProfileExists(updatedContext));
         } else if (state is UserProfileNotFound) {
+          print('👤 Maintaining UserProfileNotFound state after token refresh');
           emit(UserProfileNotFound(updatedContext));
+        } else {
+          print('⚠️ Unknown state during token refresh: ${state.runtimeType}');
         }
       } else {
+        print('❌ No current auth context found, emitting Unauthenticated');
         emit(Unauthenticated());
       }
     } catch (e) {
+      print('❌ Token refresh failed: $e');
       emit(Unauthenticated());
+    } finally {
+      _isRefreshingToken = false;
+      print('🏁 Token refresh process completed');
     }
   }
 
@@ -247,8 +287,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     GetProfileMeEvent event,
     Emitter<AuthState> emit,
   ) async {
+    print('🔄 GetProfileMeEvent triggered - refreshing profile data');
     emit(ProfileMeLoading());
     try {
+      final profile = await getProfileMe();
+      print('✅ Profile refresh successful!');
+      print('  - Profile ID: ${profile.id}');
+      print('  - Name: ${profile.fullName}');
+      print('  - Address: ${profile.addressDisplay}');
+      print('  - City: ${profile.address.city}');
+      emit(ProfileMeLoaded(profile));
+    } catch (e) {
+      print('❌ Profile refresh failed: $e');
+      emit(ProfileMeError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateProfile(
+    UpdateProfileEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(ProfileMeLoading());
+    try {
+      await updateProfile(event.profileData);
       final profile = await getProfileMe();
       emit(ProfileMeLoaded(profile));
     } catch (e) {

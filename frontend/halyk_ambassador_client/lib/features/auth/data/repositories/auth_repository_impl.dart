@@ -136,4 +136,11 @@ class AuthRepositoryImpl implements AuthRepository {
     final model = await profileRemoteDataSource.getProfileMe();
     return model;
   }
+
+  @override
+  Future<UserProfile> updateProfile(ProfileData profileData) async {
+    final model = ProfileDataModel.fromEntity(profileData);
+    final updatedProfile = await profileRemoteDataSource.updateProfile(model);
+    return updatedProfile;
+  }
 }

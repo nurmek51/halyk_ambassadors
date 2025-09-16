@@ -3,6 +3,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:halyk_ambassador_client/features/auth/presentation/bloc/auth_state.dart';
 import 'package:halyk_ambassador_client/core/widgets/responsive_wrapper.dart';
+import '../../../applications/presentation/pages/create_application_page.dart';
+import '../../../applications/presentation/pages/applications_history_page.dart';
+import '../../../applications/presentation/bloc/application_bloc.dart';
+import '../../../../injection_container.dart' as di;
 import '../bloc/auth_bloc.dart';
 import '../widgets/halyk_logo_widget.dart';
 
@@ -40,7 +44,7 @@ class MenuPage extends StatelessWidget {
   Widget _buildHeaderCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(2.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -125,8 +129,19 @@ class MenuPage extends StatelessWidget {
           icon: 'assets/icons/add_icon.svg',
           title: 'Создать заявку',
           onTap: () {
-            // Navigate to create request page
-            // TODO: Implement navigation
+            final authBloc = BlocProvider.of<AuthBloc>(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MultiBlocProvider(
+                  providers: [
+                    BlocProvider.value(value: authBloc),
+                    BlocProvider(create: (context) => di.sl<ApplicationBloc>()),
+                  ],
+                  child: const CreateApplicationPage(),
+                ),
+              ),
+            );
           },
         ),
         const SizedBox(height: 24),
@@ -135,8 +150,19 @@ class MenuPage extends StatelessWidget {
           icon: 'assets/icons/bookmark_icon.svg',
           title: 'История заявок',
           onTap: () {
-            // Navigate to history page
-            // TODO: Implement navigation
+            final authBloc = BlocProvider.of<AuthBloc>(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MultiBlocProvider(
+                  providers: [
+                    BlocProvider.value(value: authBloc),
+                    BlocProvider(create: (context) => di.sl<ApplicationBloc>()),
+                  ],
+                  child: const ApplicationsHistoryPage(),
+                ),
+              ),
+            );
           },
         ),
       ],
@@ -172,7 +198,7 @@ class MenuPage extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 18),
+            padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 18),
             child: Row(
               children: [
                 // Icon container

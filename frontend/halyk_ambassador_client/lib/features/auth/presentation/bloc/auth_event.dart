@@ -63,3 +63,12 @@ class CheckUserProfileEvent extends AuthEvent {
 }
 
 class GetProfileMeEvent extends AuthEvent {}
+
+class UpdateProfileEvent extends AuthEvent {
+  final ProfileData profileData;
+
+  const UpdateProfileEvent(this.profileData);
+
+  @override
+  List<Object> get props => [profileData];
+}

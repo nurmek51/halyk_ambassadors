@@ -6,6 +6,7 @@ abstract class ProfileRemoteDataSource {
   Future<List<CityModel>> getCities();
   Future<ProfileDataModel> getUserProfile(String accountId);
   Future<UserProfileModel> getProfileMe();
+  Future<UserProfileModel> updateProfile(ProfileDataModel profileData);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -58,10 +59,66 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<UserProfileModel> getProfileMe() async {
+    print('🌐 Making GET request to /api/accounts/profile/me/');
     try {
       final response = await dio.get('/api/accounts/profile/me/');
-      return UserProfileModel.fromJson(response.data);
+      print('✅ GET profile request successful!');
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      final result = UserProfileModel.fromJson(response.data);
+      print('🔄 Parsed profile response successfully');
+      print('  - Profile ID: ${result.id}');
+      print('  - Full Name: ${result.fullName}');
+      print('  - Address Display: ${result.addressDisplay}');
+      print('  - City: ${result.address.city}');
+
+      return result;
     } on DioException catch (e) {
+      print('❌ GET profile request failed!');
+      print('  - Error type: ${e.type}');
+      print('  - Status code: ${e.response?.statusCode}');
+      print('  - Error message: ${e.message}');
+      print('  - Response data: ${e.response?.data}');
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<UserProfileModel> updateProfile(ProfileDataModel profileData) async {
+    print('🌐 Making PUT request to /api/accounts/profile/me/');
+    print('📤 Request data: ${profileData.toJson()}');
+
+    // Add validation to ensure address_query is not empty
+    if (profileData.addressQuery.isEmpty) {
+      print('❌ Address query is empty - aborting update');
+      throw Exception('Address query cannot be empty');
+    }
+
+    try {
+      final response = await dio.put(
+        '/api/accounts/profile/me/',
+        data: profileData.toJson(),
+      );
+
+      print('✅ PUT request successful!');
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      final result = UserProfileModel.fromJson(response.data);
+      print('🔄 Parsed response successfully');
+      print('  - Profile ID: ${result.id}');
+      print('  - Address Display: ${result.addressDisplay}');
+      print('  - City: ${result.address.city}');
+
+      return result;
+    } on DioException catch (e) {
+      print('❌ PUT request failed!');
+      print('  - Error type: ${e.type}');
+      print('  - Status code: ${e.response?.statusCode}');
+      print('  - Error message: ${e.message}');
+      print('  - Response data: ${e.response?.data}');
+      print('  - Request data that was sent: ${profileData.toJson()}');
       throw _handleError(e);
     }
   }

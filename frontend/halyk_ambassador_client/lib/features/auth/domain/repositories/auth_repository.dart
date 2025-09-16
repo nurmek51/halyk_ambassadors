@@ -16,4 +16,5 @@ abstract class AuthRepository {
   Future<void> createProfile(ProfileData profileData);
   Future<List<City>> getCities();
   Future<UserProfile> getProfileMe();
+  Future<UserProfile> updateProfile(ProfileData profileData);
 }

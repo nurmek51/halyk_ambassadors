@@ -15,7 +15,18 @@ import 'features/auth/domain/usecases/create_profile.dart';
 import 'features/auth/domain/usecases/refresh_token.dart';
 import 'features/auth/domain/usecases/check_user_profile.dart';
 import 'features/auth/domain/usecases/get_profile_me.dart';
+import 'features/auth/domain/usecases/update_profile.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+
+// Application imports
+import 'features/applications/data/datasources/application_remote_datasource.dart';
+import 'features/applications/data/repositories/application_repository_impl.dart';
+import 'features/applications/domain/repositories/application_repository.dart';
+import 'features/applications/domain/usecases/create_application.dart';
+import 'features/applications/domain/usecases/get_user_applications.dart';
+import 'features/applications/domain/usecases/geocode_address.dart';
+import 'features/applications/domain/usecases/get_geolocation_address.dart';
+import 'features/applications/presentation/bloc/application_bloc.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -94,6 +105,23 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => CheckAuthStatus(sl()));
   sl.registerLazySingleton(() => CheckUserProfile(sl()));
   sl.registerLazySingleton(() => GetProfileMeUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateProfile(sl()));
+
+  // Application Data Sources
+  sl.registerLazySingleton<ApplicationRemoteDataSource>(
+    () => ApplicationRemoteDataSourceImpl(dio: sl()),
+  );
+
+  // Application Repositories
+  sl.registerLazySingleton<ApplicationRepository>(
+    () => ApplicationRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Application Use Cases
+  sl.registerLazySingleton(() => CreateApplication(sl()));
+  sl.registerLazySingleton(() => GetUserApplications(sl()));
+  sl.registerLazySingleton(() => GeocodeAddress(sl()));
+  sl.registerLazySingleton(() => GetGeolocationAddress(sl()));
 
   // BLoC
   sl.registerFactory(
@@ -106,6 +134,18 @@ Future<void> initializeDependencies() async {
       checkAuthStatus: sl(),
       checkUserProfile: sl(),
       getProfileMe: sl(),
+      updateProfile: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => ApplicationBloc(
+      createApplication: sl(),
+      getUserApplications: sl(),
+      geocodeAddress: sl(),
+      getGeolocationAddress: sl(),
+      authBloc: sl(),
+      updateProfile: sl(),
     ),
   );
 }

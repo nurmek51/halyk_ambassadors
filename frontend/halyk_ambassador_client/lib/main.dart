@@ -43,6 +43,8 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   Timer? _refreshTimer;
+  bool _isRefreshingToken = false;
+  DateTime? _lastRefreshTime;
 
   @override
   void initState() {
@@ -55,25 +57,72 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
+    _refreshTimer = null;
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+
+    // Only refresh token when app is resumed and enough time has passed since last refresh
     if (state == AppLifecycleState.resumed) {
-      // App resumed, check auth status and refresh token if needed
-      context.read<AuthBloc>().add(RefreshTokenEvent());
+      final now = DateTime.now();
+      final timeSinceLastRefresh = _lastRefreshTime != null
+          ? now.difference(_lastRefreshTime!)
+          : const Duration(minutes: 30); // Allow refresh on first resume
+
+      // Only refresh if it's been more than 5 minutes since last refresh
+      // and we're not already refreshing
+      if (timeSinceLastRefresh.inMinutes >= 5 && !_isRefreshingToken) {
+        print(
+          '🔄 App resumed - refreshing token after ${timeSinceLastRefresh.inMinutes} minutes',
+        );
+        _refreshToken();
+      } else {
+        print(
+          '⏭️ Skipping token refresh - last refresh was ${timeSinceLastRefresh.inMinutes} minutes ago',
+        );
+      }
     }
   }
 
   void _startTokenRefreshTimer() {
+    // Cancel any existing timer
+    _refreshTimer?.cancel();
+
     // Refresh token every 25 minutes (tokens usually expire in 30 minutes)
     _refreshTimer = Timer.periodic(const Duration(minutes: 25), (timer) {
-      if (mounted) {
-        context.read<AuthBloc>().add(RefreshTokenEvent());
+      if (mounted && !_isRefreshingToken) {
+        print('⏰ Scheduled token refresh');
+        _refreshToken();
       }
     });
+    print('⏰ Token refresh timer started (25 minutes interval)');
+  }
+
+  Future<void> _refreshToken() async {
+    if (_isRefreshingToken) {
+      print('⚠️ Token refresh already in progress, skipping');
+      return;
+    }
+
+    _isRefreshingToken = true;
+    _lastRefreshTime = DateTime.now();
+
+    try {
+      context.read<AuthBloc>().add(RefreshTokenEvent());
+      print('📤 RefreshTokenEvent dispatched');
+    } catch (e) {
+      print('❌ Error dispatching RefreshTokenEvent: $e');
+    } finally {
+      // Reset the flag after a short delay to prevent rapid successive calls
+      Future.delayed(const Duration(seconds: 30), () {
+        if (mounted) {
+          _isRefreshingToken = false;
+        }
+      });
+    }
   }
 
   @override
