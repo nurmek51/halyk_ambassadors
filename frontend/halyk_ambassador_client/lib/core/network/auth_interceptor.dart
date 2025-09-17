@@ -15,11 +15,14 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // Add authorization header for authenticated endpoints
-    if (_requiresAuth(options.path)) {
-      final accessToken = sharedPreferences.getString('access_token');
-      if (accessToken != null) {
-        options.headers['Authorization'] = 'Bearer $accessToken';
+    // Skip adding authorization header for auth endpoints (login, refresh-token, etc.)
+    if (!options.path.startsWith('/auth/')) {
+      // Add authorization header for authenticated endpoints
+      if (_requiresAuth(options.path)) {
+        final accessToken = sharedPreferences.getString('access_token');
+        if (accessToken != null) {
+          options.headers['Authorization'] = 'Bearer $accessToken';
+        }
       }
     }
 
@@ -30,14 +33,24 @@ class AuthInterceptor extends Interceptor {
   }
 
   bool _requiresAuth(String path) {
-    return path.contains('/api/accounts/profile/') ||
-        path.contains('/api/users/') ||
-        path.startsWith('/api/') && !path.contains('/auth/');
+    // Auth endpoints don't require authorization headers
+    if (path.startsWith('/auth/')) {
+      return false;
+    }
+
+    // Protected API endpoints require authentication
+    return path.startsWith('/api/');
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    // Handle token refresh on 401 errors
+    // Skip token refresh for auth endpoints (login, refresh-token, etc.)
+    if (err.requestOptions.path.startsWith('/auth/')) {
+      handler.next(err);
+      return;
+    }
+
+    // Handle token refresh on 401 errors for protected endpoints
     if (err.response?.statusCode == 401 &&
         _requiresAuth(err.requestOptions.path)) {
       try {
@@ -47,7 +60,14 @@ class AuthInterceptor extends Interceptor {
           final response = await dio.post(
             '/auth/refresh-token',
             data: {'refresh_token': refreshToken},
-            options: Options(headers: {'Content-Type': 'application/json'}),
+            options: Options(
+              headers: {
+                'Content-Type': 'application/json',
+                // Explicitly remove any authorization header
+                'Authorization': null,
+              },
+              receiveTimeout: const Duration(seconds: 60), // Increased timeout
+            ),
           );
 
           if (response.statusCode == 200) {

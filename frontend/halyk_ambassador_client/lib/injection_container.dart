@@ -53,7 +53,10 @@ Future<void> initializeDependencies() async {
   final dio = Dio();
   dio.options.baseUrl = apiBaseUrl;
   dio.options.connectTimeout = const Duration(seconds: 30);
-  dio.options.receiveTimeout = const Duration(seconds: 30);
+  dio.options.receiveTimeout = const Duration(
+    seconds: 60,
+  ); // Increased from 30 to 60 seconds
+  dio.options.sendTimeout = const Duration(seconds: 30);
 
   // Add auth interceptor
   dio.interceptors.add(

@@ -194,14 +194,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     // Prevent multiple simultaneous refresh requests
     if (_isRefreshingToken) {
+      print('⚠️ Token refresh already in progress, skipping');
       return;
     }
 
     _isRefreshingToken = true;
 
     try {
+      print('🔄 Starting token refresh...');
       final currentContext = await checkAuthStatus();
       if (currentContext != null) {
+        // Validate that we have a refresh token
+        if (currentContext.tokens.refreshToken.isEmpty) {
+          print('❌ No refresh token available');
+          emit(Unauthenticated());
+          return;
+        }
+
+        print('📡 Refreshing tokens for user: ${currentContext.accountId}');
         final newTokens = await refreshToken(
           currentContext.tokens.refreshToken,
         );
@@ -211,6 +221,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           phoneNumber: currentContext.phoneNumber,
           tokens: newTokens,
         );
+
+        print('✅ Token refresh successful');
 
         // Maintain current profile state when refreshing tokens
         // DO NOT refetch profile data - it should only be fetched once on app start
@@ -224,10 +236,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           emit(UserProfileNotFound(updatedContext));
         }
       } else {
+        print('❌ No valid auth context found for token refresh');
         emit(Unauthenticated());
       }
     } catch (e) {
-      emit(Unauthenticated());
+      print('❌ Token refresh failed: $e');
+      // Don't emit Unauthenticated on refresh failure - keep current state
+      // The AuthInterceptor will handle retrying failed requests
     } finally {
       _isRefreshingToken = false;
     }

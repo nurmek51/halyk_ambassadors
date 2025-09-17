@@ -116,18 +116,22 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     _lastRefreshTime = DateTime.now();
 
     try {
+      print('⏰ Starting scheduled token refresh at ${_lastRefreshTime}');
+      // Dispatch the refresh event
       context.read<AuthBloc>().add(RefreshTokenEvent());
       print('📤 RefreshTokenEvent dispatched');
+
+      // Wait for the token refresh to complete or timeout
+      await Future.delayed(const Duration(seconds: 90));
+      print('✅ Token refresh timeout reached');
     } catch (e) {
-      print('❌ Error dispatching RefreshTokenEvent: $e');
+      print('❌ Token refresh failed: $e');
     } finally {
-      // Reset the flag after a delay to prevent rapid successive calls
-      // Increased delay to ensure token refresh completes properly
-      Future.delayed(const Duration(seconds: 60), () {
-        if (mounted) {
-          _isRefreshingToken = false;
-        }
-      });
+      // Reset the flag after completion or timeout
+      if (mounted) {
+        _isRefreshingToken = false;
+        print('🔄 Token refresh flag reset');
+      }
     }
   }
 

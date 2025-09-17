@@ -13,6 +13,7 @@ import '../bloc/application_bloc.dart';
 import '../bloc/application_event.dart';
 import '../bloc/application_state.dart';
 import '../widgets/geocode_suggestions_widget.dart';
+import 'application_confirm_page.dart';
 
 class CreateApplicationPage extends StatefulWidget {
   final String? initialCity;
@@ -92,8 +93,11 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
                 child: BlocListener<ApplicationBloc, ApplicationState>(
                   listener: (context, state) {
                     if (state is ApplicationCreated) {
-                      _showSuccessMessage();
-                      Navigator.pop(context);
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const ApplicationConfirmPage(),
+                        ),
+                      );
                     } else if (state is ApplicationFormState &&
                         state.error != null) {
                       _showErrorMessage(state.error!);

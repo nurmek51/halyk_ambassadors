@@ -18,12 +18,13 @@ class ResponsiveWrapper extends StatelessWidget {
           // Mobile layout - full width
           return child;
         } else {
-          // Desktop/tablet layout - center content with 394px width
+          // Desktop/tablet layout - center content with 394px width and 845px height
           return Container(
             color: backgroundColor ?? const Color(0xFFF1F2F1),
             child: Center(
               child: Container(
                 width: 394,
+                height: 845,
                 decoration: const BoxDecoration(color: Colors.white),
                 child: child,
               ),

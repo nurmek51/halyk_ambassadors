@@ -11,7 +11,8 @@ class ApplicationsHistoryPage extends StatefulWidget {
   const ApplicationsHistoryPage({super.key});
 
   @override
-  State<ApplicationsHistoryPage> createState() => _ApplicationsHistoryPageState();
+  State<ApplicationsHistoryPage> createState() =>
+      _ApplicationsHistoryPageState();
 }
 
 class _ApplicationsHistoryPageState extends State<ApplicationsHistoryPage> {
@@ -31,7 +32,10 @@ class _ApplicationsHistoryPageState extends State<ApplicationsHistoryPage> {
           backgroundColor: const Color.fromARGB(255, 255, 255, 255),
           elevation: 0,
           scrolledUnderElevation: 0,
+          leadingWidth: 40,
+          titleSpacing: 10,
           leading: IconButton(
+            padding: const EdgeInsets.only(left: 18),
             icon: const Icon(
               Icons.arrow_back_ios,
               color: Color(0xFF1C1B1F),
@@ -170,6 +174,9 @@ class _ApplicationsHistoryPageState extends State<ApplicationsHistoryPage> {
             final application = applications[index];
             return ApplicationCard(
               application: application,
+              isLatest:
+                  index ==
+                  0, // Only the first (latest) application shows as "Новая"
               onTap: () {
                 // TODO: Navigate to application details page
                 // For now, just show a placeholder
@@ -234,7 +241,10 @@ class _ApplicationsHistoryPageState extends State<ApplicationsHistoryPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF35645B),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -261,11 +271,7 @@ class _ApplicationsHistoryPageState extends State<ApplicationsHistoryPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Color(0xFFE57373),
-            ),
+            const Icon(Icons.error_outline, size: 64, color: Color(0xFFE57373)),
             const SizedBox(height: 24),
             const Text(
               'Ошибка загрузки',
@@ -297,7 +303,10 @@ class _ApplicationsHistoryPageState extends State<ApplicationsHistoryPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF35645B),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

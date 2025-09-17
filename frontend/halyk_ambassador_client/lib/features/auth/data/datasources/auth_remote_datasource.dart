@@ -38,13 +38,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<AuthTokensModel> refreshToken(String token) async {
     try {
+      print('🔄 Making refresh token request...');
+      // Use longer timeout for refresh token requests and ensure no auth header
       final response = await dio.post(
         '/auth/refresh-token',
         data: {'refresh_token': token},
+        options: Options(
+          receiveTimeout: const Duration(seconds: 60), // Increased timeout
+          sendTimeout: const Duration(seconds: 30),
+          headers: {
+            'Content-Type': 'application/json',
+            // Explicitly remove any authorization header for refresh requests
+            'Authorization': null,
+          },
+        ),
       );
 
+      print('✅ Refresh token response received');
       return AuthTokensModel.fromJson(response.data);
     } on DioException catch (e) {
+      print('❌ Refresh token request failed: ${e.message}');
       throw _handleError(e);
     }
   }
