@@ -213,16 +213,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
 
         // Maintain current profile state when refreshing tokens
+        // DO NOT refetch profile data - it should only be fetched once on app start
         if (state is ProfileMeLoaded) {
-          // Refresh profile data from server after token refresh
-          try {
-            final refreshedProfile = await getProfileMe();
-            emit(ProfileMeLoaded(refreshedProfile));
-          } catch (e) {
-            // Fall back to maintaining existing profile if refresh fails
-            final currentProfile = (state as ProfileMeLoaded).profile;
-            emit(ProfileMeLoaded(currentProfile));
-          }
+          // Keep existing profile data, just update the auth context if needed
+          final currentProfile = (state as ProfileMeLoaded).profile;
+          emit(ProfileMeLoaded(currentProfile));
         } else if (state is UserProfileExists) {
           emit(UserProfileExists(updatedContext));
         } else if (state is UserProfileNotFound) {

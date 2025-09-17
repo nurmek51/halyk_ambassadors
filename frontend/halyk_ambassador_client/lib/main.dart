@@ -74,11 +74,16 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
       // Only refresh if it's been more than 5 minutes since last refresh
       // and we're not already refreshing
-      if (timeSinceLastRefresh.inMinutes >= 5 && !_isRefreshingToken) {
+      // Also skip refresh if this is the first time the app is resuming (app just started)
+      if (timeSinceLastRefresh.inMinutes >= 5 &&
+          !_isRefreshingToken &&
+          _lastRefreshTime != null) {
         print(
           '🔄 App resumed - refreshing token after ${timeSinceLastRefresh.inMinutes} minutes',
         );
         _refreshToken();
+      } else if (_lastRefreshTime == null) {
+        print('🚀 App just started - skipping token refresh on first resume');
       } else {
         print(
           '⏭️ Skipping token refresh - last refresh was ${timeSinceLastRefresh.inMinutes} minutes ago',
@@ -116,8 +121,9 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     } catch (e) {
       print('❌ Error dispatching RefreshTokenEvent: $e');
     } finally {
-      // Reset the flag after a short delay to prevent rapid successive calls
-      Future.delayed(const Duration(seconds: 30), () {
+      // Reset the flag after a delay to prevent rapid successive calls
+      // Increased delay to ensure token refresh completes properly
+      Future.delayed(const Duration(seconds: 60), () {
         if (mounted) {
           _isRefreshingToken = false;
         }
