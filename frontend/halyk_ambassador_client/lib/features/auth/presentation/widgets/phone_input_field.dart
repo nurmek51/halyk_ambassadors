@@ -84,10 +84,6 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
             margin: const EdgeInsets.only(right: 14),
             width: 26,
             height: 26,
-            decoration: BoxDecoration(
-              color: AppColors.iconGray,
-              borderRadius: BorderRadius.circular(13),
-            ),
           ),
         ],
       ),

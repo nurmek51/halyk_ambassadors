@@ -15,18 +15,22 @@ class ResponsiveWrapper extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth <= 420) {
-          // Mobile layout - full width
+          // Mobile layout - full width with actual MediaQuery
           return child;
         } else {
-          // Desktop/tablet layout - center content with 394px width and 845px height
+          // Desktop/tablet layout - center content with mobile-like dimensions
           return Container(
             color: backgroundColor ?? const Color(0xFFF1F2F1),
             child: Center(
               child: Container(
                 width: 394,
-                height: 845,
                 decoration: const BoxDecoration(color: Colors.white),
-                child: child,
+                child: MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(size: const Size(394, 844)),
+                  child: child,
+                ),
               ),
             ),
           );

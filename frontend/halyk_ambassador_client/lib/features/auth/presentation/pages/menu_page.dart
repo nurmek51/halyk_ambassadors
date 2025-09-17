@@ -237,14 +237,13 @@ class MenuPage extends StatelessWidget {
                   width: 14,
                   height: 24,
                   alignment: Alignment.center,
-                  child: Text(
-                    '􀆊',
-                    style: TextStyle(
-                      fontFamily: 'SF Compact',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black.withValues(alpha: 0.1),
-                      height: 1.19,
+                  child: SvgPicture.asset(
+                    'assets/icons/arrow.svg',
+                    width: 10,
+                    height: 17,
+                    colorFilter: ColorFilter.mode(
+                      Colors.black.withValues(alpha: 0.1),
+                      BlendMode.srcIn,
                     ),
                   ),
                 ),
