@@ -20,7 +20,7 @@ class ResponsiveWrapper extends StatelessWidget {
         } else {
           // Desktop/tablet layout - center content with 394px width
           return Container(
-            color: backgroundColor ?? const Color.fromARGB(255, 255, 255, 255),
+            color: backgroundColor ?? const Color(0xFFF1F2F1),
             child: Center(
               child: Container(
                 width: 394,

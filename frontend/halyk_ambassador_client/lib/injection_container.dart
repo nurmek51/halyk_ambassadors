@@ -144,8 +144,6 @@ Future<void> initializeDependencies() async {
       getUserApplications: sl(),
       geocodeAddress: sl(),
       getGeolocationAddress: sl(),
-      authBloc: sl(),
-      updateProfile: sl(),
     ),
   );
 }

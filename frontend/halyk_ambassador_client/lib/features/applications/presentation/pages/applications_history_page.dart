@@ -26,9 +26,9 @@ class _ApplicationsHistoryPageState extends State<ApplicationsHistoryPage> {
   Widget build(BuildContext context) {
     return ResponsiveWrapper(
       child: Scaffold(
-        backgroundColor: const Color(0xFFF1F2F1),
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF1F2F1),
+          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(

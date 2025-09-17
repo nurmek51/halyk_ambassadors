@@ -7,16 +7,17 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_state.dart';
 import '../bloc/application_bloc.dart';
 import '../bloc/application_event.dart';
 import '../bloc/application_state.dart';
 import '../widgets/geocode_suggestions_widget.dart';
 
 class CreateApplicationPage extends StatefulWidget {
-  const CreateApplicationPage({super.key});
+  final String? initialCity;
+
+  const CreateApplicationPage({super.key, this.initialCity});
 
   @override
   State<CreateApplicationPage> createState() => _CreateApplicationPageState();
@@ -36,26 +37,8 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
   }
 
   void _initializeForm() {
-    // Check if profile is already loaded and update controllers directly
-    final authState = context.read<AuthBloc>().state;
-    print('🔄 Initializing form - AuthBloc state: ${authState.runtimeType}');
-
-    if (authState is ProfileMeLoaded) {
-      final userCity = authState.profile.address.city;
-      print('👤 User profile loaded - City: $userCity');
-      if (userCity.isNotEmpty) {
-        // Update controllers directly for immediate UI update
-        _addressController.text = userCity;
-        _cityController.text = userCity;
-        print('📝 Controllers updated with city: $userCity');
-      }
-    } else {
-      print('⚠️ Profile not loaded yet - Auth state: $authState');
-    }
-
-    // Always dispatch InitializeFormEvent to sync with ApplicationBloc
+    // Initialize the form via ApplicationBloc. No profile-based city logic here.
     context.read<ApplicationBloc>().add(InitializeFormEvent());
-    print('📤 InitializeFormEvent dispatched');
   }
 
   @override
@@ -71,30 +54,24 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Update controllers when state changes
+    // Update controllers from ApplicationBloc state, fallback to widget.initialCity if needed
     final applicationState = context.watch<ApplicationBloc>().state;
-    final authState = context.watch<AuthBloc>().state;
 
     if (applicationState is ApplicationFormState) {
-      // Update address controller if the state address is different from controller text
       if (applicationState.addressQuery != _addressController.text) {
         _addressController.text = applicationState.addressQuery;
       }
 
-      // Update city controller - prioritize ApplicationBloc state, fallback to AuthBloc
-      String? cityToSet;
-      if (applicationState.selectedCity?.isNotEmpty ?? false) {
-        cityToSet = applicationState.selectedCity;
-      } else if (authState is ProfileMeLoaded &&
-          authState.profile.address.city.isNotEmpty) {
-        cityToSet = authState.profile.address.city;
+      if ((applicationState.selectedCity ?? '').isNotEmpty &&
+          applicationState.selectedCity != _cityController.text) {
+        _cityController.text = applicationState.selectedCity!;
+      } else if ((applicationState.selectedCity ?? '').isEmpty &&
+          (widget.initialCity ?? '').isNotEmpty &&
+          widget.initialCity != _cityController.text) {
+        // Use passed initialCity as a one-time fallback when ApplicationBloc has no city
+        _cityController.text = widget.initialCity!;
       }
 
-      if (cityToSet != null && cityToSet != _cityController.text) {
-        _cityController.text = cityToSet;
-      }
-
-      // Update comment controller if the state description is different from controller text
       if (applicationState.description != _commentController.text) {
         _commentController.text = applicationState.description;
       }
@@ -106,7 +83,7 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
     return ResponsiveWrapper(
       backgroundColor: const Color(0xFFF1F2F1),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF1F2F1),
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         body: SafeArea(
           child: Column(
             children: [
@@ -121,7 +98,6 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
                         state.error != null) {
                       _showErrorMessage(state.error!);
                     } else if (state is GeolocationSuccess) {
-                      // Update the address controller with the geolocation result
                       _addressController.text = state.result.displayName;
                       _showSuccessMessage('Геолокация получена успешно');
                     } else if (state is GeolocationError) {
@@ -134,11 +110,11 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 25),
+                          const SizedBox(height: 6),
                           _buildGeneralInfoSection(),
                           const SizedBox(height: 40),
                           _buildPhotosSection(),
-                          const SizedBox(height: 120),
+                          const SizedBox(height: 100),
                         ],
                       ),
                     ),
@@ -164,15 +140,12 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
               width: 30,
               height: 31,
               alignment: Alignment.center,
-              child: const Text(
-                '􀰌',
-                style: TextStyle(
-                  fontFamily: 'SF Compact',
-                  fontSize: 26,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF353F49),
-                  height: 1.19,
-                ),
+              child: SvgPicture.asset(
+                'assets/icons/back_arrow.svg',
+                width: 24,
+                height: 20,
+                color: const Color(0xFF353F49),
+                semanticsLabel: 'back',
               ),
             ),
           ),
@@ -196,6 +169,7 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 32),
         const Text(
           'Общие сведения',
           style: TextStyle(
@@ -206,13 +180,13 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
             height: 1.10,
           ),
         ),
-        const SizedBox(height: 37),
+        const SizedBox(height: 12),
         _buildCityField(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         _buildAddressField(),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         _buildUseLocationButton(),
-        const SizedBox(height: 36),
+        const SizedBox(height: 24),
         _buildCommentField(),
       ],
     );
@@ -221,18 +195,7 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
   Widget _buildCityField() {
     return BlocBuilder<ApplicationBloc, ApplicationState>(
       builder: (context, state) {
-        // Also check AuthBloc state for immediate updates
-        final authState = context.watch<AuthBloc>().state;
-        String? cityText;
-
-        if (state is ApplicationFormState) {
-          cityText = state.selectedCity;
-        }
-
-        // If no city from ApplicationBloc, check AuthBloc
-        if ((cityText?.isEmpty ?? true) && authState is ProfileMeLoaded) {
-          cityText = authState.profile.address.city;
-        }
+        // city is controlled by _cityController and updated from ApplicationBloc state
 
         return Container(
           decoration: BoxDecoration(
@@ -244,7 +207,7 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
             child: TextField(
               controller: _cityController,
               readOnly:
-                  true, // City is populated automatically, not editable by user
+                  true, // City is populated automatically by ApplicationBloc
               decoration: const InputDecoration(
                 hintText: 'Город',
                 hintStyle: TextStyle(
@@ -299,12 +262,15 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
                     );
 
                     if (value.trim().isNotEmpty) {
-                      // Debounce the geocoding request
-                      Future.delayed(const Duration(milliseconds: 500), () {
+                      Future.delayed(const Duration(milliseconds: 1500), () {
                         if (_addressController.text == value &&
                             value.trim().isNotEmpty) {
+                          final city = _cityController.text.trim();
+                          final query = city.isNotEmpty
+                              ? '$city, $value'
+                              : value;
                           context.read<ApplicationBloc>().add(
-                            GeocodeAddressEvent(query: value),
+                            GeocodeAddressEvent(query: query),
                           );
                         }
                       });
@@ -336,10 +302,6 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
               GecodeSuggestionsWidget(
                 suggestions: formState.geocodeResults,
                 onSuggestionSelected: (address) {
-                  print('🎯 Address selected: ${address.displayName}');
-                  print('  - City: ${address.address.city}');
-                  print('  - Lat: ${address.lat}, Lon: ${address.lon}');
-
                   _addressController.text = address.displayName;
                   context.read<ApplicationBloc>().add(
                     SelectGeocodeResultEvent(address: address),
@@ -467,16 +429,14 @@ class _CreateApplicationPageState extends State<CreateApplicationPage> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFDFDFDF), width: 1),
         ),
-        child: const Center(
-          child: Text(
-            '􀌞',
-            style: TextStyle(
-              fontFamily: 'SF Compact',
-              fontSize: 25,
-              fontWeight: FontWeight.w600,
-              color: Color(0x8A000000),
-              height: 1.30,
-            ),
+        child: Center(
+          // use SVG camera icon instead of placeholder glyph
+          child: SvgPicture.asset(
+            'assets/icons/camera.svg',
+            width: 30,
+            height: 23,
+            color: const Color(0x8A000000),
+            semanticsLabel: 'camera',
           ),
         ),
       ),

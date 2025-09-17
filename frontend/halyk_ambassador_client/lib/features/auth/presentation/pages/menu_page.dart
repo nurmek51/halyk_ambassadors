@@ -130,15 +130,17 @@ class MenuPage extends StatelessWidget {
           title: 'Создать заявку',
           onTap: () {
             final authBloc = BlocProvider.of<AuthBloc>(context);
+            final authState = authBloc.state;
+            String? initialCity;
+            if (authState is ProfileMeLoaded) {
+              initialCity = authState.profile.address.city;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => MultiBlocProvider(
-                  providers: [
-                    BlocProvider.value(value: authBloc),
-                    BlocProvider(create: (context) => di.sl<ApplicationBloc>()),
-                  ],
-                  child: const CreateApplicationPage(),
+                builder: (context) => BlocProvider(
+                  create: (context) => di.sl<ApplicationBloc>(),
+                  child: CreateApplicationPage(initialCity: initialCity),
                 ),
               ),
             );
@@ -150,15 +152,11 @@ class MenuPage extends StatelessWidget {
           icon: 'assets/icons/bookmark_icon.svg',
           title: 'История заявок',
           onTap: () {
-            final authBloc = BlocProvider.of<AuthBloc>(context);
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => MultiBlocProvider(
-                  providers: [
-                    BlocProvider.value(value: authBloc),
-                    BlocProvider(create: (context) => di.sl<ApplicationBloc>()),
-                  ],
+                builder: (context) => BlocProvider(
+                  create: (context) => di.sl<ApplicationBloc>(),
                   child: const ApplicationsHistoryPage(),
                 ),
               ),
