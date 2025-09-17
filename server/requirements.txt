@@ -12,3 +12,4 @@ passlib[bcrypt]
 python-dotenv
 pytest
 pytest-asyncio
+pydantic-settings
